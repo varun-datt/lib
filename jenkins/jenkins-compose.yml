@@ -1,0 +1,36 @@
+version: "3.3"
+
+# For bind mounts, the folders need to be chown -R 1000:1000
+# In Jenkins,
+#   Advanced RefSpec: +refs/heads/feature/*:refs/remotes/origin/feature/*
+#   Branches to build: origin/*/webui/*
+#   Repository Browser:
+#   Checkout to specific local branch (leave input box empty, for branch names)
+#   Prune stale remote tracking branches
+#   Polling ignore commits in certain paths
+
+services:
+  jenkins:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    privileged: true
+    ports:
+      - 8080:8080
+      - 8081:8081
+      - 50000:50000
+    restart: unless-stopped
+    volumes:
+      - /home/jenkins/home:/var/jenkins_home:Z
+      - /home/jenkins/misc:/var/jenkins-files:Z
+      - /var/run/docker.sock:/var/run/docker.sock
+    user: jenkins
+#    Swarm
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '0.50'
+#          memory: 6G
+
+# List of useful plugins
+# Logstash plugin

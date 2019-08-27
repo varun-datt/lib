@@ -1,0 +1,97 @@
+version: "3.3"
+
+# git clone https://github.com/deviantony/docker-elk.git elk
+# mkdir elk/elasticsearch/data # to persist elasticsearch data
+# Reference: https://github.com/deviantony/docker-elk/blob/master/docker-compose.yml
+
+# Logspout-logstash UDP connection issues: sudo conntrack -D -p udp and restart container
+
+services:
+  elasticsearch:
+    build:
+      context: elk/elasticsearch/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - ./elk/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - ./elk/elasticsearch/data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - elk
+
+  logstash:
+    build:
+      context: elk/logstash/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - ./elk/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./elk/logstash/pipeline:/usr/share/logstash/pipeline:ro
+    ports:
+      - target: 5000
+        published: 5000
+        protocol: tcp
+        mode: host
+      - target: 5000
+        published: 5000
+        protocol: udp
+        mode: host
+      - "9600:9600"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+  # Can be used to delete logs older than UNIT_COUNT days(CONFIG_FILE)
+  curator:
+    build:
+      context: elk/extensions/curator/
+    environment:
+      ELASTICSEARCH_HOST: elasticsearch
+      CRON: 0 0 * * *
+      CONFIG_FILE: /usr/share/curator/config/curator.yml
+      COMMAND: /usr/share/curator/config/delete_log_files_curator.yml
+      UNIT_COUNT: 1
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+  # Connects to docker socket, using docker APIs sends docker logs of all containers to logstash
+  logspout:
+    build:
+      context: elk/extensions/logspout
+    container_name: logspout
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      ROUTE_URIS: logstash://localhost:10001
+      LOGSTASH_TAGS: docker,logs
+    networks:
+      - elk
+    depends_on:
+      - logstash
+
+  kibana:
+    build:
+      context: elk/kibana/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - ./elk/kibana/config/:/usr/share/kibana/config:ro
+    ports:
+      - "5601:5601"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+networks:
+  elk:
+    driver: bridge

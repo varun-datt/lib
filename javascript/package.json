@@ -1,0 +1,31 @@
+{
+  "name": "javascript",
+  "version": "1.0.0",
+  "description": "Javascript stuff",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next",
+    "build": "next build",
+    "start:orig": "next start",
+    "start": "next",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/varun-datt/lib.git"
+  },
+  "keywords": [
+    "javascript"
+  ],
+  "author": "Varun Datt",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/varun-datt/lib/issues"
+  },
+  "homepage": "https://github.com/varun-datt/lib#readme",
+  "dependencies": {
+    "next": "^7.0.2",
+    "react": "^16.6.3",
+    "react-dom": "^16.6.3"
+  }
+}

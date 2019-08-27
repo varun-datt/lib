@@ -1,0 +1,67 @@
+version: '3.4'
+
+# https://github.com/getsentry/onpremise
+#  docker volume create --name=sentry-data && docker volume create --name=sentry-postgres - Make our local database and sentry volumes Docker volumes have to be created manually, as they are declared as external to be more durable.
+#  cp -n .env.example .env - create env config file
+#  docker-compose build - Build and tag the Docker services
+#  docker-compose run --rm web config generate-secret-key - Generate a secret key. Add it to .env as SENTRY_SECRET_KEY.
+#  docker-compose run --rm web upgrade - Build the database. Use the interactive prompts to create a user account.
+#  docker-compose up -d - Lift all services (detached/background mode).
+#  Access your instance at localhost:9000!
+
+x-defaults: &defaults
+  restart: unless-stopped
+  build: .
+  depends_on:
+    - redis
+    - postgres
+    - memcached
+    - smtp
+  env_file: .env
+  environment:
+    SENTRY_MEMCACHED_HOST: memcached
+    SENTRY_REDIS_HOST: redis
+    SENTRY_POSTGRES_HOST: postgres
+    SENTRY_EMAIL_HOST: smtp
+  volumes:
+    - sentry-data:/var/lib/sentry/files
+
+
+services:
+  smtp:
+    restart: unless-stopped
+    image: tianon/exim4
+
+  memcached:
+    restart: unless-stopped
+    image: memcached:1.5-alpine
+
+  redis:
+    restart: unless-stopped
+    image: redis:3.2-alpine
+
+  postgres:
+    restart: unless-stopped
+    image: postgres:9.5
+    volumes:
+      - sentry-postgres:/var/lib/postgresql/data
+
+  web:
+    <<: *defaults
+    ports:
+      - '9000:9000'
+
+  cron:
+    <<: *defaults
+    command: run cron
+
+  worker:
+    <<: *defaults
+    command: run worker
+
+
+volumes:
+  sentry-data:
+    external: true
+  sentry-postgres:
+    external: true

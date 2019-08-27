@@ -1,0 +1,48 @@
+version: "3.3"
+
+# /etc/docker/daemon.json { "dns": ["MY.NAME.SERVER"] }
+# .env file is only for docker-compose.yml
+
+services:
+  example:
+    image: example:latest # image or build
+    build:
+      context: ./example
+      dockerfile: Dockerfile
+    container_name: example # helps with `docker logs example`
+    depends_on:
+      - example2 # will start example2 and then example; docker-compose up example will start example2
+    dns:
+      - 8.8.8.8
+    dns_search:
+      - dc1.example.com
+      - dc2.example.com
+    environment:
+      - EXAMPLE=example
+    ports:
+      - "80:8080"
+      - target: 5000 # container
+        published: 10001 # host
+        protocol: tcp
+        mode: host
+      - target: 5000
+        published: 10001
+        protocol: udp
+        mode: host
+    privileged: true # to run containers as siblings
+    restart: unless-stopped # always
+    volumes:
+      - ./example:/usr/example
+      - /var/run/docker.sock:/var/run/docker.sock:ro # to access docker api (like logs)
+      - type: bind
+        source: /example
+        target: /example
+        read_only: true
+
+  nginx-proxy:
+    image: nginx:latest
+
+  # couchdb
+  # selenium/hub
+  # selenium/node-chrome
+  # selenium/node-firefox

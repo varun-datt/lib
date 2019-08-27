@@ -1,0 +1,26 @@
+<!-- Multiple ng-content-->
+<app-child>
+  <div header >This should be rendered in header selection of ng-content</div>
+  <div body >This should be rendered in body selection of ng-content</div>
+</app-child>
+<div class="header-css-class">
+  <ng-content select="[header]"></ng-content>
+</div>
+<div class="body-css-class">
+  <ng-content select="[body]"></ng-content>
+</div>
+
+<!-- Multiple conditional ng-content-->
+<ng-template #content>
+  <ng-content></ng-content>
+</ng-template>
+<div *ngIf="flag">
+  <ng-container *ngTemplateOutlet="content"></ng-container>
+</div>
+<div *ngIf="!flag">
+  <ng-container *ngTemplateOutlet="content"></ng-container>
+</div>
+
+<!-- ngFor trackBy-->
+<!-- trackBy: To improve performance, a trackBy function can be provided to help uniquely identify nodes to track how the data changes with each update -->
+<li *ngFor="let a of arr; trackBy:trackBy"></li>

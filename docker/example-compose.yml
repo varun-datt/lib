@@ -1,0 +1,147 @@
+version: "3.3"
+services:
+  nginx-proxy:
+    image: nginx:alpine
+    ports:
+      - 80:80
+      - 443:443
+    restart: unless-stopped
+    volumes:
+      - /home/webui/sandbox/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - /home/webui/sandbox/nginx/ssl:/etc/ssl
+      - /home/webui/sandbox/jenkins/home/jobs/webui-cd/lastSuccessful/htmlreports/documentation:/usr/share/nginx/html/documentation
+      - /home/webui/sandbox/jenkins/home/workspace/webui-cd/nbwebservice/doc/src/main/resources:/usr/share/nginx/html/api-docs
+      - /home/webui/sandbox/jenkins/home/jobs/webui-ci/builds:/usr/share/nginx/html/builds
+
+  jenkins:
+    build:
+      context: ./jenkins
+      dockerfile: jenkins.Dockerfile
+    privileged: true
+    ports:
+      - 8080:8080
+      - 8081:8081
+      - 50000:50000
+    restart: unless-stopped
+    volumes:
+      - /home/webui/sandbox/jenkins/home:/var/jenkins_home:Z
+      - /home/webui/sandbox/jenkins/misc:/var/jenkins-files:Z
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /net/nbtools.rmnus.sen.symantec.com/vol/tools:/net/nbtools.rmnus.sen.symantec.com/vol/tools
+    user: jenkins
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '0.50'
+#          memory: 6G
+
+  registry:
+    image: registry
+    restart: unless-stopped
+    ports:
+      - 10004:5000
+
+  # Automated Dependency Updates: https://renovatebot.com/
+  # https://hub.docker.com/r/renovate/renovate/
+  renovate:
+    image: renovate/renovate
+    restart: unless-stopped
+
+  # couch:
+  #   image: couchdb
+  #   ports:
+  #     - 10001:5984
+  #   volumes:
+  #     - /home/webui/sandbox/couch:/opt/couchdb/data
+
+  # mariadb:
+  #   image: 'bitnami/mariadb:latest'
+  #   environment:
+  #     - MARIADB_USER=bn_matomo
+  #     - MARIADB_DATABASE=bitnami_matomo
+  #     - ALLOW_EMPTY_PASSWORD=yes
+  #   volumes:
+  #     - 'mariadb_data:/bitnami'
+
+  # matomo:
+  #   image: 'bitnami/matomo:latest'
+  #   environment:
+  #     - MARIADB_HOST=mariadb
+  #     - MARIADB_PORT_NUMBER=3306
+  #     - MATOMO_DATABASE_USER=bn_matomo
+  #     - MATOMO_DATABASE_NAME=bitnami_matomo
+  #     - ALLOW_EMPTY_PASSWORD=yes
+  #   labels:
+  #     kompose.service.type: nodeport
+  #   ports:
+  #     - '80:80'
+  #     - '443:443'
+  #   depends_on:
+  #     - mariadb
+  #   volumes:
+  #     - 'matomo_data:/bitnami'
+
+  # Continuous code inspection/ code quality
+  # https://github.com/docker-library/docs/tree/master/sonarqube
+  sonarqube:
+    image: sonarqube
+    ports:
+      - 9000:9000
+    networks:
+      - sonarnet
+    environment:
+      - SONARQUBE_JDBC_URL=jdbc:postgresql://db:5432/sonar
+    volumes:
+      - ./sonarqube/conf:/opt/sonarqube/conf
+      - ./sonarqube/lib/bundled-plugins:/opt/sonarqube/lib/bundled-plugins
+      - ./sonarqube/data:/opt/sonarqube/data
+      - ./sonarqube/extensions:/opt/sonarqube/extensions
+
+  db:
+    image: postgres
+    networks:
+      - sonarnet
+    environment:
+      - POSTGRES_USER=sonar
+      - POSTGRES_PASSWORD=sonar
+    volumes:
+      - ./postgresql:/var/lib/postgresql
+      # This needs explicit mapping due to https://github.com/docker-library/postgres/blob/4e48e3228a30763913ece952c611e5e9b95c8759/Dockerfile.template#L52
+      - ./postgresql/data:/var/lib/postgresql/data
+
+  rancher:
+    image: rancher/server:preview
+    ports:
+      - 10011:8080
+
+  swagger-editor:
+    image: swaggerapi/swagger-editor
+    ports:
+      - 10015:8080
+
+  # Selenium with chrome and firefox
+  selenium-hub:
+    image: selenium/hub
+    restart: unless-stopped
+    ports:
+      - 10000:4444
+
+  chrome:
+    image: selenium/node-chrome
+    restart: unless-stopped
+    depends_on:
+      - selenium-hub
+    environment:
+      - HUB_PORT_4444_TCP_ADDR=selenium-hub
+      - HUB_PORT_4444_TCP_PORT=4444
+    volumes:
+      - /dev/shm:/dev/shm
+
+  firefox:
+    image: selenium/node-firefox
+    restart: unless-stopped
+    depends_on:
+      - selenium-hub
+    environment:
+      - HUB_PORT_4444_TCP_ADDR=selenium-hub
+      - HUB_PORT_4444_TCP_PORT=4444

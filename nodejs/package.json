@@ -1,0 +1,21 @@
+{
+  "name": "nodejs",
+  "version": "1.0.0",
+  "description": "nodejs",
+  "main": "index.js",
+  "scripts": {
+    "run-script": "npm run webpack && echo 'Will run the script from package.json'",
+    "run-npm-package": "webpack && echo 'Will run webpack from node-modules (locally or globally)",
+    "webpack": "node --max-old-space-size=6144 --optimize-for-size node_modules/webpack/bin/webpack.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/varun-datt/lib.git"
+  },
+  "author": "Varun Datt",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/varun-datt/lib/issues"
+  },
+  "homepage": "https://github.com/varun-datt/lib#readme"
+}
